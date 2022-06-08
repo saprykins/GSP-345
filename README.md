@@ -143,13 +143,14 @@ $ terraform plan
 $ terraform apply
 ----------------
 
+ 
 ====================== TASK 2: Configure a remote backend ======================
 
 Add the following code to the modules/storage/storage.tf file:
 
 -------------------------------------------------------------------
 resource "google_storage_bucket" "storage-bucket" {
-  name          = var.project_id
+  name          = "tf-bucket-816831"
   location      = "US"
   force_destroy = true
   uniform_bucket_level_access = true
@@ -176,8 +177,8 @@ Next, update the main.tf file so that the terraform block looks like the followi
 -------------------------------------------
 terraform {
   backend "gcs" {
-    bucket  = "<FILL IN PROJECT ID>"
- prefix  = "terraform/state"
+    bucket  = "tf-bucket-816831"
+    prefix  = "terraform/state"
   }
   required_providers {
     google = {
@@ -194,17 +195,17 @@ Run the following to initialize the remote backend. Type yes at the prompt.
 terraform init
 ----------------
 
+ 
 ====================== TASK 3: Modify and update infrastructure ======================
 
 Navigate to modules/instances/instance.tf. Replace the entire contents of the file with the following:
 
 --------------------------------------------------------
+
 resource "google_compute_instance" "tf-instance-1" {
   name         = "tf-instance-1"
   machine_type = "n1-standard-2"
   zone         = var.zone
-  allow_stopping_for_update = true
-
   boot_disk {
     initialize_params {
       image = "debian-cloud/debian-10"
@@ -212,43 +213,55 @@ resource "google_compute_instance" "tf-instance-1" {
   }
 
   network_interface {
- network = "default"
+    network = "default"
   }
+  
+  metadata_startup_script = <<-EOT
+        #!/bin/bash
+    EOT
+  allow_stopping_for_update = true
 }
-
+  
 resource "google_compute_instance" "tf-instance-2" {
   name         = "tf-instance-2"
   machine_type = "n1-standard-2"
   zone         = var.zone
-  allow_stopping_for_update = true
 
   boot_disk {
     initialize_params {
       image = "debian-cloud/debian-10"
     }
   }
-
-  network_interface {
- network = "default"
+    network_interface {
+    network = "default"
   }
+  
+  metadata_startup_script = <<-EOT
+        #!/bin/bash
+    EOT
+  allow_stopping_for_update = true
 }
-
+ 
 resource "google_compute_instance" "tf-instance-3" {
-  name         = "tf-instance-3"
+  name         = "tf-instance-38xxxx"
   machine_type = "n1-standard-2"
   zone         = var.zone
-  allow_stopping_for_update = true
 
   boot_disk {
     initialize_params {
       image = "debian-cloud/debian-10"
     }
   }
-
-  network_interface {
- network = "default"
+    network_interface {
+    network = "default"
   }
+  
+  metadata_startup_script = <<-EOT
+        #!/bin/bash
+    EOT
+  allow_stopping_for_update = true
 }
+ 
 --------------------------------------------------------------------------------------------------
 
 Run the following commands to initialize the module and create/update the instance resources. Type yes at the dialogue after you run the apply command to accept the state changes.
@@ -271,26 +284,13 @@ Run the following commands to apply the changes:
 ----------------
 terraform init
 terraform apply
-----------------
-
+---------------- 
+ 
 Remove the tf-instance-3 resource from the instances.tf file. Delete the following code chunk from the file.
 
 -----------------------------------------------------------
 resource "google_compute_instance" "tf-instance-3" {
-  name         = "tf-instance-3"
-  machine_type = "n1-standard-2"
-  zone         = var.zone
-  allow_stopping_for_update = true
-
-  boot_disk {
-    initialize_params {
-      image = "debian-cloud/debian-10"
-    }
-  }
-
-  network_interface {
- network = "default"
-  }
+  ...
 }
 --------------------------------------------------------------------
 
@@ -301,15 +301,15 @@ terraform apply
 ----------------
 
 ====================== TASK 5: Use a module from the Registry ======================
-Copy and paste the following into the main.tf file:
+Add the following into the main.tf file:
 
 ----------------------------------------------------------------
 module "vpc" {
     source  = "terraform-google-modules/network/google"
-    version = "~> 3.2.2"
+    version = "~> 3.4.0"
 
     project_id   = var.project_id
-    network_name = "terraform-vpc"
+    network_name = "tf-vpc-16881"
     routing_mode = "GLOBAL"
 
     subnets = [
@@ -340,12 +340,11 @@ terraform apply
 Navigate to modules/instances/instances.tf. Replace the entire contents of the file with the following:
 
 -------------------------------------------------------
-resource "google_compute_instance" "tf-instance-1" {
+
+ resource "google_compute_instance" "tf-instance-1" {
   name         = "tf-instance-1"
   machine_type = "n1-standard-2"
   zone         = var.zone
-  allow_stopping_for_update = true
-
   boot_disk {
     initialize_params {
       image = "debian-cloud/debian-10"
@@ -353,28 +352,37 @@ resource "google_compute_instance" "tf-instance-1" {
   }
 
   network_interface {
- network = "terraform-vpc"
+    network = "tf-vpc-16881"
     subnetwork = "subnet-01"
   }
+  
+  metadata_startup_script = <<-EOT
+        #!/bin/bash
+    EOT
+  allow_stopping_for_update = true
 }
-
+  
 resource "google_compute_instance" "tf-instance-2" {
   name         = "tf-instance-2"
   machine_type = "n1-standard-2"
   zone         = var.zone
-  allow_stopping_for_update = true
 
   boot_disk {
     initialize_params {
       image = "debian-cloud/debian-10"
     }
   }
-
   network_interface {
- network = "terraform-vpc"
+    network = "tf-vpc-16881"
     subnetwork = "subnet-02"
   }
+  
+  metadata_startup_script = <<-EOT
+        #!/bin/bash
+    EOT
+  allow_stopping_for_update = true
 }
+ 
 --------------------------------------------------------------------------------------------
 
 Run the following commands to initialize the module and update the instances. Type yes at the prompt.
@@ -390,7 +398,7 @@ Add the following resource to the main.tf file and fill in the GCP Project ID:
 ------------------------------------------------------------------
 resource "google_compute_firewall" "tf-firewall" {
   name    = "tf-firewall"
- network = "projects/<PROJECT_ID>/global/networks/terraform-vpc"
+  network = "projects/<PROJECT_ID>/global/networks/tf-vpc-16881"
 
   allow {
     protocol = "tcp"
